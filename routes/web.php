@@ -6,9 +6,32 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// Debug route to test Laravel components
+// Debug route - no middleware
 Route::get('/debug', function () {
     $checks = [];
+
+    // Check APP_KEY
+    $appKey = config('app.key');
+    $checks['app_key'] = $appKey ? 'SET (length: ' . strlen($appKey) . ')' : 'NOT SET!';
+
+    // Check environment
+    $checks['app_env'] = config('app.env');
+    $checks['app_debug'] = config('app.debug') ? 'true' : 'false';
+
+    // Check session config
+    $checks['session_driver'] = config('session.driver');
+    $checks['session_path'] = config('session.files');
+
+    // Check cache config
+    $checks['cache_driver'] = config('cache.default');
+
+    // Check storage paths
+    $checks['storage_path'] = storage_path();
+    $checks['storage_writable'] = is_writable(storage_path()) ? 'OK' : 'NOT WRITABLE';
+    $checks['views_path'] = storage_path('framework/views');
+    $checks['views_writable'] = is_writable(storage_path('framework/views')) ? 'OK' : 'NOT WRITABLE';
+    $checks['sessions_path'] = storage_path('framework/sessions');
+    $checks['sessions_writable'] = is_writable(storage_path('framework/sessions')) ? 'OK' : 'NOT WRITABLE';
 
     // Check database connection
     try {
@@ -18,15 +41,6 @@ Route::get('/debug', function () {
         $checks['database'] = 'FAILED: ' . $e->getMessage();
     }
 
-    // Check session driver
-    $checks['session_driver'] = config('session.driver');
-
-    // Check cache driver
-    $checks['cache_driver'] = config('cache.default');
-
-    // Check if storage is writable
-    $checks['storage_writable'] = is_writable(storage_path()) ? 'OK' : 'NOT WRITABLE';
-
     // Check if User model exists
     try {
         $userCount = \App\Models\User::count();
@@ -35,13 +49,5 @@ Route::get('/debug', function () {
         $checks['users_table'] = 'FAILED: ' . $e->getMessage();
     }
 
-    // Check Filament panel provider
-    try {
-        $panel = \Filament\Facades\Filament::getDefaultPanel();
-        $checks['filament_panel'] = $panel ? 'OK (id: ' . $panel->getId() . ')' : 'NOT FOUND';
-    } catch (\Exception $e) {
-        $checks['filament_panel'] = 'FAILED: ' . $e->getMessage();
-    }
-
     return response()->json($checks);
-});
+})->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class);

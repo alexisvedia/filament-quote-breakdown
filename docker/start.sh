@@ -57,10 +57,14 @@ php artisan db:seed --force 2>&1 || echo "Seeding failed!"
 echo "=== Testing Laravel bootstrap ==="
 php artisan --version 2>&1 || echo "Laravel bootstrap failed!"
 
-# Cache configuration for production
-echo "=== Caching configuration ==="
-php artisan config:cache 2>&1 || echo "Config cache failed!"
-# Note: route:cache doesn't work with closure-based routes
+# Clear caches to ensure fresh state
+echo "=== Clearing caches ==="
+php artisan config:clear 2>&1 || echo "Config clear failed!"
+php artisan view:clear 2>&1 || echo "View clear failed!"
+php artisan cache:clear 2>&1 || echo "Cache clear failed!"
+
+# Try to pre-compile views
+echo "=== Pre-compiling views ==="
 php artisan view:cache 2>&1 || echo "View cache failed!"
 
 # Test Filament specifically
