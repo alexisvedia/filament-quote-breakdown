@@ -31,8 +31,12 @@ WORKDIR /var/www
 # Copy application files
 COPY . /var/www
 
-# Install dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+# Create .env file and SQLite database before composer install
+RUN cp .env.example .env \
+    && touch /var/www/database/database.sqlite
+
+# Install dependencies (no-scripts to avoid Laravel initialization during build)
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 
 # Install npm dependencies and build assets
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
@@ -41,11 +45,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && npm run build
 
 # Set permissions
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
-
-# Create SQLite database
-RUN touch /var/www/database/database.sqlite \
-    && chown www-data:www-data /var/www/database/database.sqlite
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache /var/www/database
 
 # Copy nginx configuration
 COPY docker/nginx.conf /etc/nginx/sites-available/default
