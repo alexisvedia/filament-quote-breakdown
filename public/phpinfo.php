@@ -82,6 +82,20 @@ try {
     $checks['autoloader'] = 'FAILED: ' . $e->getMessage();
 }
 
+// Check environment variable (might override .env file)
+$envAppKey = getenv('APP_KEY') ?: ($_ENV['APP_KEY'] ?? null);
+if ($envAppKey) {
+    $checks['env_var_app_key'] = [
+        'source' => 'ENVIRONMENT VARIABLE (overrides .env!)',
+        'length' => strlen($envAppKey),
+        'first_10' => substr($envAppKey, 0, 10),
+        'last_5' => substr($envAppKey, -5),
+        'matches_env_file' => ($envAppKey === $appKey),
+    ];
+} else {
+    $checks['env_var_app_key'] = 'NOT SET (good - uses .env file)';
+}
+
 // Check for config cache that might have old APP_KEY
 $configCachePath = dirname(__DIR__) . '/bootstrap/cache/config.php';
 $checks['config_cache_exists'] = file_exists($configCachePath);
