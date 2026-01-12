@@ -15,5 +15,17 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Log all exceptions with full details
+        $exceptions->respond(function (\Symfony\Component\HttpFoundation\Response $response, \Throwable $e) {
+            if (config('app.debug')) {
+                return response()->json([
+                    'error' => $e->getMessage(),
+                    'exception' => get_class($e),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'trace' => array_slice($e->getTrace(), 0, 10),
+                ], 500);
+            }
+            return $response;
+        });
     })->create();
