@@ -82,6 +82,20 @@ try {
     $checks['autoloader'] = 'FAILED: ' . $e->getMessage();
 }
 
+// Check for config cache that might have old APP_KEY
+$configCachePath = dirname(__DIR__) . '/bootstrap/cache/config.php';
+$checks['config_cache_exists'] = file_exists($configCachePath);
+if (file_exists($configCachePath)) {
+    $cachedConfig = require $configCachePath;
+    $cachedKey = $cachedConfig['app']['key'] ?? '';
+    $checks['cached_app_key'] = [
+        'length' => strlen($cachedKey),
+        'first_10' => substr($cachedKey, 0, 10),
+        'last_5' => substr($cachedKey, -5),
+        'matches_env_file' => ($cachedKey === $appKey),
+    ];
+}
+
 // Check for route cache files
 $routeCachePath = dirname(__DIR__) . '/bootstrap/cache/routes-v7.php';
 $checks['route_cache_file'] = [
