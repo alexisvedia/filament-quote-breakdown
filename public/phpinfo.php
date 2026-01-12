@@ -88,7 +88,7 @@ $checks['web_routes_file'] = [
     'size' => file_exists($webRoutesPath) ? filesize($webRoutesPath) : 0,
 ];
 
-// Try to bootstrap Laravel
+// Try to bootstrap Laravel and handle a request
 try {
     $app = require dirname(__DIR__) . '/bootstrap/app.php';
     $checks['bootstrap'] = 'OK';
@@ -98,74 +98,63 @@ try {
         $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
         $checks['kernel'] = 'OK';
 
-        // Try to handle a fake request to the welcome page
+        // Create a request
+        $request = Illuminate\Http\Request::create('/debug', 'GET');
+
+        // Actually handle the request (this will load routes)
         try {
-            $request = Illuminate\Http\Request::create('/', 'GET');
+            // Capture output to prevent it from being sent
+            ob_start();
+            $response = $kernel->handle($request);
+            ob_end_clean();
 
-            // Test middleware manually
-            try {
-                $app->instance('request', $request);
-                $checks['request_binding'] = 'OK';
+            $checks['response_status'] = $response->getStatusCode();
+            $checks['response_content_length'] = strlen($response->getContent());
 
-                // Try to resolve the router
-                $router = $app->make('router');
-                $checks['router'] = 'OK';
-
-                // Try to get routes
-                $routes = $router->getRoutes();
-                $checks['routes_count'] = $routes->count();
-
-                // List all registered routes
-                $routeList = [];
-                foreach ($routes as $route) {
-                    $routeList[] = $route->uri();
-                }
-                $checks['route_list'] = $routeList;
-
-                // If no routes, try to manually load them
-                if ($routes->count() === 0) {
-                    try {
-                        // Try to load routes directly
-                        $webRoutesFile = dirname(__DIR__) . '/routes/web.php';
-                        if (file_exists($webRoutesFile)) {
-                            require $webRoutesFile;
-                            $routes = $router->getRoutes();
-                            $checks['routes_after_manual_load'] = $routes->count();
-                        }
-                    } catch (Exception $e) {
-                        $checks['manual_route_load'] = 'FAILED: ' . $e->getMessage();
+            // If error, capture the content
+            if ($response->getStatusCode() >= 400) {
+                $content = $response->getContent();
+                // Try to decode as JSON
+                $decoded = json_decode($content, true);
+                if ($decoded) {
+                    $checks['error_details'] = $decoded;
+                } else {
+                    // Extract error message from HTML
+                    if (preg_match('/<h1[^>]*>([^<]+)<\/h1>/', $content, $matches)) {
+                        $checks['error_title'] = $matches[1];
+                    }
+                    if (preg_match('/<div[^>]*class="[^"]*message[^"]*"[^>]*>([^<]+)<\/div>/i', $content, $matches)) {
+                        $checks['error_message'] = trim($matches[1]);
+                    }
+                    // For debug mode, try to extract the actual error
+                    if (preg_match('/class="exception_message">([^<]+)</', $content, $matches)) {
+                        $checks['exception_message'] = trim($matches[1]);
+                    }
+                    if (preg_match('/class="exception_title">([^<]+)</', $content, $matches)) {
+                        $checks['exception_title'] = trim($matches[1]);
                     }
                 }
-
-                // Try to find the welcome route
-                $welcomeRoute = $routes->match($request);
-                $checks['welcome_route'] = $welcomeRoute ? 'FOUND' : 'NOT FOUND';
-
-                // Try to render the welcome view
-                try {
-                    $viewContent = view('welcome')->render();
-                    $checks['welcome_view'] = 'OK (rendered ' . strlen($viewContent) . ' bytes)';
-                } catch (Exception $e) {
-                    $checks['welcome_view'] = 'FAILED: ' . $e->getMessage();
-                }
-
-                // Try to start session
-                try {
-                    $session = $app->make('session');
-                    $checks['session_manager'] = 'OK';
-
-                    $session->start();
-                    $checks['session_start'] = 'OK';
-                } catch (Exception $e) {
-                    $checks['session'] = 'FAILED: ' . $e->getMessage();
-                }
-
-            } catch (Exception $e) {
-                $checks['request_test'] = 'FAILED: ' . $e->getMessage();
             }
 
+            // Now check routes after request handling
+            $router = $app->make('router');
+            $routes = $router->getRoutes();
+            $checks['routes_after_handle'] = $routes->count();
+
+            $routeList = [];
+            foreach ($routes as $route) {
+                $routeList[] = $route->uri();
+            }
+            $checks['route_list'] = array_slice($routeList, 0, 20); // Limit to first 20
+
+            $kernel->terminate($request, $response);
+
         } catch (Exception $e) {
-            $checks['request_creation'] = 'FAILED: ' . $e->getMessage();
+            $checks['handle_failed'] = [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ];
         }
 
     } catch (Exception $e) {
