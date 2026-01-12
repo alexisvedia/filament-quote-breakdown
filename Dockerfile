@@ -41,7 +41,8 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction --no-script
 # Generate APP_KEY and run Laravel post-install scripts
 RUN php artisan key:generate --force \
     && php artisan package:discover --ansi \
-    && php artisan filament:upgrade
+    && php artisan filament:upgrade \
+    && php artisan icons:cache
 
 # Install npm dependencies and build assets
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
