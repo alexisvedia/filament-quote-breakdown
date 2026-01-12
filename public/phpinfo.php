@@ -42,12 +42,27 @@ $checks['env_file'] = [
 if (file_exists($envPath) && is_readable($envPath)) {
     $envContent = file_get_contents($envPath);
     preg_match('/^APP_KEY=(.*)$/m', $envContent, $matches);
-    $appKey = $matches[1] ?? '';
+    $appKey = trim($matches[1] ?? '');
     $checks['app_key'] = [
         'set' => !empty($appKey),
-        'length' => strlen($appKey),
+        'raw_length' => strlen($appKey),
         'starts_with_base64' => strpos($appKey, 'base64:') === 0,
+        'first_10_chars' => substr($appKey, 0, 10),
+        'last_5_chars' => substr($appKey, -5),
     ];
+
+    // If base64, decode and check actual key length
+    if (strpos($appKey, 'base64:') === 0) {
+        $base64Part = substr($appKey, 7); // Remove 'base64:' prefix
+        $checks['app_key']['base64_part_length'] = strlen($base64Part);
+        $decoded = base64_decode($base64Part, true);
+        if ($decoded !== false) {
+            $checks['app_key']['decoded_length'] = strlen($decoded);
+            $checks['app_key']['decoded_valid'] = strlen($decoded) === 32 ? 'OK (32 bytes)' : 'WRONG (' . strlen($decoded) . ' bytes, expected 32)';
+        } else {
+            $checks['app_key']['decoded_length'] = 'DECODE_FAILED';
+        }
+    }
 }
 
 // Check database file
