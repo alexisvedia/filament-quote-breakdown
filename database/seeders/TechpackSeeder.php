@@ -91,7 +91,10 @@ class TechpackSeeder extends Seeder
         ];
 
         foreach ($techpacks as $techpack) {
-            Techpack::create($techpack);
+            Techpack::updateOrCreate(
+                ['style_code' => $techpack['style_code']],
+                $techpack
+            );
         }
     }
 }

@@ -14,45 +14,57 @@ class QuoteSeeder extends Seeder
         // Use existing suppliers from SupplierSeeder
         $suppliers = Supplier::take(3)->get();
 
-        // Create quotes
-        $quotes = [
-            Quote::create([
+        // Define quotes data
+        $quotesData = [
+            [
                 'name' => 'Summer Collection 2026',
                 'style_number' => 'SC-001',
                 'status' => 'pending',
-                'total' => 0,
-            ]),
-            Quote::create([
+            ],
+            [
                 'name' => 'Winter Line 2026',
                 'style_number' => 'WL-002',
                 'status' => 'approved',
-                'total' => 0,
-            ]),
+            ],
         ];
 
         // Item types for techpack breakdown
         $itemTypes = ['Fabric', 'Trim', 'Label', 'Packaging', 'CMT (Labor)', 'Shipping'];
 
-        // Create quote items for each quote and supplier
-        foreach ($quotes as $quote) {
+        // Create or update quotes
+        foreach ($quotesData as $quoteData) {
+            $quote = Quote::updateOrCreate(
+                ['style_number' => $quoteData['style_number']],
+                array_merge($quoteData, ['total' => 0])
+            );
+
             $quoteTotal = 0;
+
+            // Create quote items for each supplier
             foreach ($suppliers as $supplier) {
                 foreach ($itemTypes as $itemName) {
-                    $unitPrice = rand(100, 1000) / 100;
-                    $quantity = rand(100, 500);
+                    // Use deterministic values based on quote and supplier for consistency
+                    $seed = crc32($quote->style_number . $supplier->id . $itemName);
+                    $unitPrice = ($seed % 900 + 100) / 100;
+                    $quantity = ($seed % 400) + 100;
                     $total = $unitPrice * $quantity;
                     $quoteTotal += $total;
 
-                    QuoteItem::create([
-                        'quote_id' => $quote->id,
-                        'supplier_id' => $supplier->id,
-                        'item_name' => $itemName,
-                        'unit_price' => $unitPrice,
-                        'quantity' => $quantity,
-                        'total' => $total,
-                    ]);
+                    QuoteItem::updateOrCreate(
+                        [
+                            'quote_id' => $quote->id,
+                            'supplier_id' => $supplier->id,
+                            'item_name' => $itemName,
+                        ],
+                        [
+                            'unit_price' => $unitPrice,
+                            'quantity' => $quantity,
+                            'total' => $total,
+                        ]
+                    );
                 }
             }
+
             $quote->update(['total' => $quoteTotal]);
         }
     }
