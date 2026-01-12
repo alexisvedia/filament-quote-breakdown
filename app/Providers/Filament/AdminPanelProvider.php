@@ -24,9 +24,10 @@ class AdminPanelProvider extends PanelProvider
     {
         return $panel
             ->default()->brandName('WTS')
-            ->renderHook('panels::global-search.before', fn () => view('filament.topbar-actions'))
-            ->renderHook('panels::sidebar.footer', fn () => view('filament.sidebar-footer'))
-            ->renderHook('panels::sidebar.nav.end', fn () => view('filament.view-toggle'))
+            // Temporarily disabled for debugging production 500 error
+            // ->renderHook('panels::global-search.before', fn () => view('filament.topbar-actions'))
+            // ->renderHook('panels::sidebar.footer', fn () => view('filament.sidebar-footer'))
+            // ->renderHook('panels::sidebar.nav.end', fn () => view('filament.view-toggle'))
             ->id('admin')
             ->path('admin')
             ->login()
