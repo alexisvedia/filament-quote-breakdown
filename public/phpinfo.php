@@ -76,6 +76,55 @@ try {
     try {
         $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
         $checks['kernel'] = 'OK';
+
+        // Try to handle a fake request to the welcome page
+        try {
+            $request = Illuminate\Http\Request::create('/', 'GET');
+
+            // Test middleware manually
+            try {
+                $app->instance('request', $request);
+                $checks['request_binding'] = 'OK';
+
+                // Try to resolve the router
+                $router = $app->make('router');
+                $checks['router'] = 'OK';
+
+                // Try to get routes
+                $routes = $router->getRoutes();
+                $checks['routes_count'] = $routes->count();
+
+                // Try to find the welcome route
+                $welcomeRoute = $routes->match($request);
+                $checks['welcome_route'] = $welcomeRoute ? 'FOUND' : 'NOT FOUND';
+
+                // Try to render the welcome view
+                try {
+                    $viewContent = view('welcome')->render();
+                    $checks['welcome_view'] = 'OK (rendered ' . strlen($viewContent) . ' bytes)';
+                } catch (Exception $e) {
+                    $checks['welcome_view'] = 'FAILED: ' . $e->getMessage();
+                }
+
+                // Try to start session
+                try {
+                    $session = $app->make('session');
+                    $checks['session_manager'] = 'OK';
+
+                    $session->start();
+                    $checks['session_start'] = 'OK';
+                } catch (Exception $e) {
+                    $checks['session'] = 'FAILED: ' . $e->getMessage();
+                }
+
+            } catch (Exception $e) {
+                $checks['request_test'] = 'FAILED: ' . $e->getMessage();
+            }
+
+        } catch (Exception $e) {
+            $checks['request_creation'] = 'FAILED: ' . $e->getMessage();
+        }
+
     } catch (Exception $e) {
         $checks['kernel'] = 'FAILED: ' . $e->getMessage();
     }
