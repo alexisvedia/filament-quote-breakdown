@@ -48,8 +48,14 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && npm install \
     && npm run build
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache /var/www/database
+# Create required directories and set permissions
+RUN mkdir -p /var/www/storage/framework/cache/data \
+    && mkdir -p /var/www/storage/framework/sessions \
+    && mkdir -p /var/www/storage/framework/views \
+    && mkdir -p /var/www/storage/logs \
+    && mkdir -p /var/www/bootstrap/cache \
+    && chmod -R 775 /var/www/storage /var/www/bootstrap/cache /var/www/database \
+    && chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache /var/www/database
 
 # Copy nginx configuration
 COPY docker/nginx.conf /etc/nginx/sites-available/default
