@@ -38,6 +38,10 @@ RUN cp .env.example .env \
 # Install dependencies (no-scripts to avoid Laravel initialization during build)
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 
+# Generate APP_KEY and run Laravel post-install scripts
+RUN php artisan key:generate --force \
+    && php artisan package:discover --ansi
+
 # Install npm dependencies and build assets
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
