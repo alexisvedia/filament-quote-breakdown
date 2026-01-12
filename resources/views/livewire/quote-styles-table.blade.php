@@ -1,4 +1,4 @@
 <div>
-    <h3 class="text-lg font-semibold mb-4">Styles</h3>
+    <h3 class="text-lg font-semibold mb-4">{{ $heading }}</h3>
     {{ $this->table }}
 </div>

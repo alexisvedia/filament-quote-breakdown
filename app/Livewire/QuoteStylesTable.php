@@ -20,6 +20,7 @@ class QuoteStylesTable extends Component implements HasForms, HasTable
     use InteractsWithTable;
 
     public Quote $quote;
+    public string $heading = 'Styles';
 
     public function table(Table $table): Table
     {

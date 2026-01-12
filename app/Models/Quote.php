@@ -26,8 +26,25 @@ class Quote extends Model
         return $this->belongsTo(Techpack::class);
     }
 
-        public function supplier()
-            {
-                    return $this->belongsTo(Supplier::class);
-                        }
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class);
+    }
+
+    public function suppliers()
+    {
+        return $this->belongsToMany(Supplier::class, 'quote_supplier')
+            ->withPivot('status', 'invited_at', 'responded_at', 'deadline', 'invitation_message')
+            ->withTimestamps();
+    }
+
+    public function messages()
+    {
+        return $this->hasMany(QuoteMessage::class);
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(QuoteComment::class);
+    }
 }

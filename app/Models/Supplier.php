@@ -35,4 +35,16 @@ class Supplier extends Model
         'last_sync' => 'datetime',
         'is_active' => 'boolean',
     ];
+
+    public function quotes()
+    {
+        return $this->belongsToMany(Quote::class, 'quote_supplier')
+            ->withPivot('status', 'invited_at', 'responded_at', 'deadline', 'invitation_message')
+            ->withTimestamps();
+    }
+
+    public function messages()
+    {
+        return $this->hasMany(QuoteMessage::class);
+    }
 }

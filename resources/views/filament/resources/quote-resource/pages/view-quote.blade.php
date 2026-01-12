@@ -33,12 +33,33 @@
                     <x-heroicon-o-clipboard-document-list class="w-4 h-4 inline-block mr-1" />
                     Production Orders (PO)
                 </button>
-                <button 
+                <button
                     wire:click="setActiveTab('action_plan')"
                     class="px-4 py-2 text-sm font-medium rounded-md transition-colors {{ $activeTab === 'action_plan' ? 'bg-white dark:bg-gray-700 text-warning-600 shadow' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400' }}"
                 >
                     <x-heroicon-o-calendar-days class="w-4 h-4 inline-block mr-1" />
                     Action Plan and Progress
+                </button>
+                <button
+                    wire:click="setActiveTab('suppliers')"
+                    class="px-4 py-2 text-sm font-medium rounded-md transition-colors {{ $activeTab === 'suppliers' ? 'bg-white dark:bg-gray-700 text-warning-600 shadow' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400' }}"
+                >
+                    <x-heroicon-o-users class="w-4 h-4 inline-block mr-1" />
+                    Suppliers
+                </button>
+                <button
+                    wire:click="setActiveTab('comments')"
+                    class="px-4 py-2 text-sm font-medium rounded-md transition-colors {{ $activeTab === 'comments' ? 'bg-white dark:bg-gray-700 text-warning-600 shadow' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400' }}"
+                >
+                    <x-heroicon-o-chat-bubble-bottom-center-text class="w-4 h-4 inline-block mr-1" />
+                    Comments
+                </button>
+                <button
+                    wire:click="setActiveTab('messages')"
+                    class="px-4 py-2 text-sm font-medium rounded-md transition-colors {{ $activeTab === 'messages' ? 'bg-white dark:bg-gray-700 text-warning-600 shadow' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400' }}"
+                >
+                    <x-heroicon-o-chat-bubble-left-right class="w-4 h-4 inline-block mr-1" />
+                    Messages
                 </button>
             </nav>
         </div>
@@ -55,6 +76,12 @@
                 <livewire:quote-production-orders-table :quote="$record" />
             @elseif($activeTab === 'action_plan')
                 <livewire:quote-action-plan-table :quote="$record" />
+            @elseif($activeTab === 'suppliers')
+                <livewire:quote-suppliers-table :quote="$record" />
+            @elseif($activeTab === 'comments')
+                <livewire:quote-comments-tab :quote="$record" />
+            @elseif($activeTab === 'messages')
+                <livewire:quote-messages-tab :quote="$record" />
             @endif
         </div>
     </div>
