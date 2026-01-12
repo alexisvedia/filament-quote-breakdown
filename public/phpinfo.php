@@ -198,6 +198,29 @@ try {
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
             ];
+
+            // Debug: check what key Laravel is actually using
+            try {
+                $configKey = $app->make('config')->get('app.key');
+                $checks['laravel_config_app_key'] = [
+                    'length' => strlen($configKey ?? ''),
+                    'first_10' => substr($configKey ?? '', 0, 10),
+                    'last_5' => substr($configKey ?? '', -5),
+                    'is_base64' => strpos($configKey ?? '', 'base64:') === 0,
+                ];
+
+                // Decode and check actual bytes
+                if (strpos($configKey ?? '', 'base64:') === 0) {
+                    $base64Part = substr($configKey, 7);
+                    $decoded = base64_decode($base64Part, true);
+                    $checks['laravel_key_decoded'] = [
+                        'base64_length' => strlen($base64Part),
+                        'decoded_bytes' => $decoded !== false ? strlen($decoded) : 'DECODE_FAILED',
+                    ];
+                }
+            } catch (Exception $e2) {
+                $checks['config_debug_error'] = $e2->getMessage();
+            }
         }
 
     } catch (Exception $e) {
