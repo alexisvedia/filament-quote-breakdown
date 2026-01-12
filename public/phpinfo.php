@@ -67,6 +67,27 @@ try {
     $checks['autoloader'] = 'FAILED: ' . $e->getMessage();
 }
 
+// Check for route cache files
+$routeCachePath = dirname(__DIR__) . '/bootstrap/cache/routes-v7.php';
+$checks['route_cache_file'] = [
+    'path' => $routeCachePath,
+    'exists' => file_exists($routeCachePath),
+];
+
+// Check all cache files
+$cacheDir = dirname(__DIR__) . '/bootstrap/cache';
+$cacheFiles = glob($cacheDir . '/*.php');
+$checks['cache_files'] = array_map('basename', $cacheFiles ?: []);
+
+// Check web.php routes file
+$webRoutesPath = dirname(__DIR__) . '/routes/web.php';
+$checks['web_routes_file'] = [
+    'path' => $webRoutesPath,
+    'exists' => file_exists($webRoutesPath),
+    'readable' => is_readable($webRoutesPath),
+    'size' => file_exists($webRoutesPath) ? filesize($webRoutesPath) : 0,
+];
+
 // Try to bootstrap Laravel
 try {
     $app = require dirname(__DIR__) . '/bootstrap/app.php';
@@ -93,6 +114,28 @@ try {
                 // Try to get routes
                 $routes = $router->getRoutes();
                 $checks['routes_count'] = $routes->count();
+
+                // List all registered routes
+                $routeList = [];
+                foreach ($routes as $route) {
+                    $routeList[] = $route->uri();
+                }
+                $checks['route_list'] = $routeList;
+
+                // If no routes, try to manually load them
+                if ($routes->count() === 0) {
+                    try {
+                        // Try to load routes directly
+                        $webRoutesFile = dirname(__DIR__) . '/routes/web.php';
+                        if (file_exists($webRoutesFile)) {
+                            require $webRoutesFile;
+                            $routes = $router->getRoutes();
+                            $checks['routes_after_manual_load'] = $routes->count();
+                        }
+                    } catch (Exception $e) {
+                        $checks['manual_route_load'] = 'FAILED: ' . $e->getMessage();
+                    }
+                }
 
                 // Try to find the welcome route
                 $welcomeRoute = $routes->match($request);
