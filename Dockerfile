@@ -38,9 +38,8 @@ RUN cp .env.example .env \
 # Install dependencies (no-scripts to avoid Laravel initialization during build)
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 
-# Generate APP_KEY and run Laravel post-install scripts
-RUN php artisan key:generate --force \
-    && php artisan package:discover --ansi \
+# Run Laravel post-install scripts (APP_KEY is pre-set in .env.example)
+RUN php artisan package:discover --ansi \
     && php artisan filament:upgrade \
     && php artisan icons:cache
 
