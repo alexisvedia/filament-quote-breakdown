@@ -9,6 +9,28 @@
                     </h3>
                 </div>
                 <div class="flex items-center gap-x-3">
+                    <button
+                        wire:click="toggleDifferencesOnly"
+                        type="button"
+                        class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 dark:border-white/10 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-white/5"
+                    >
+                        <x-heroicon-o-arrows-right-left class="h-4 w-4" />
+                        {{ $showDifferencesOnly ? 'Showing differences' : 'Show differences only' }}
+                    </button>
+                    <button
+                        type="button"
+                        class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 dark:border-white/10 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-white/5"
+                    >
+                        <x-heroicon-o-document-arrow-down class="h-4 w-4" />
+                        Export PDF
+                    </button>
+                    <button
+                        type="button"
+                        class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 dark:border-white/10 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-white/5"
+                    >
+                        <x-heroicon-o-table-cells class="h-4 w-4" />
+                        Export Excel
+                    </button>
                     <div class="fi-ta-search-ctn">
                         <label class="fi-input-wrapper flex rounded-lg shadow-sm ring-1 ring-gray-950/10 dark:ring-white/20 bg-white dark:bg-white/5">
                             <span class="fi-input-wrapper-prefix flex items-center gap-x-3 ps-3">
@@ -40,6 +62,11 @@
                                 </span>
                             </th>
                         @endforeach
+                        <th class="fi-ta-header-cell px-3 py-3.5">
+                            <span class="fi-ta-header-cell-label text-sm font-semibold text-gray-950 dark:text-white">
+                                Best
+                            </span>
+                        </th>
                         <th class="fi-ta-header-cell px-3 py-3.5 sm:last-of-type:pe-6">
                             <span class="sr-only">Actions</span>
                         </th>
@@ -48,6 +75,30 @@
                 <tbody class="divide-y divide-gray-200 whitespace-nowrap dark:divide-white/5">
                     @foreach($costsheetData['techpacks'] as $techpack)
                     <tr class="fi-ta-row transition duration-75 hover:bg-gray-50 dark:hover:bg-white/5">
+                        @php
+                            $priceValues = collect($techpack['prices'])
+                                ->pluck('price')
+                                ->filter(fn ($price) => $price !== null);
+                            $bestPrice = $priceValues->min();
+                            $averagePrice = $priceValues->avg();
+                            $bestSupplierId = null;
+
+                            if ($bestPrice !== null) {
+                                foreach ($techpack['prices'] as $supplierId => $priceData) {
+                                    if (($priceData['price'] ?? null) === $bestPrice) {
+                                        $bestSupplierId = $supplierId;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            $bestSupplierName = $bestSupplierId
+                                ? ($costsheetData['exampleSuppliers'][$bestSupplierId] ?? 'Best supplier')
+                                : null;
+                            $savingsPercent = ($averagePrice && $bestPrice !== null)
+                                ? (($averagePrice - $bestPrice) / $averagePrice) * 100
+                                : null;
+                        @endphp
                         <td class="fi-ta-cell px-3 py-4 sm:first-of-type:ps-6">
                             <div class="fi-ta-col-wrp">
                                 <x-filament::badge color="warning" class="font-mono">
@@ -56,33 +107,74 @@
                             </div>
                         </td>
                         @foreach($costsheetData['exampleSuppliers'] as $supplierId => $supplierName)
-                            <td class="fi-ta-cell px-3 py-4">
+                            @php
+                                $priceData = $techpack['prices'][$supplierId] ?? null;
+                                $price = $priceData['price'] ?? null;
+                                $status = $priceData['status'] ?? null;
+                                $isBest = $price !== null && $bestPrice !== null && $price == $bestPrice;
+                                $diff = ($price !== null && $bestPrice !== null) ? $price - $bestPrice : null;
+                                $diffPercent = ($diff !== null && $bestPrice > 0) ? ($diff / $bestPrice) * 100 : null;
+                            @endphp
+                            <td class="fi-ta-cell px-3 py-4 {{ $isBest ? 'bg-success-50/60 dark:bg-success-500/10' : '' }}">
                                 <div class="fi-ta-col-wrp">
-                                    @php
-                                        $priceData = $techpack['prices'][$supplierId] ?? null;
-                                        $price = $priceData['price'] ?? null;
-                                        $status = $priceData['status'] ?? null;
-                                    @endphp
-
                                     @if($status === 'pending')
                                         <x-filament::badge color="warning" icon="heroicon-o-clock">
                                             Pending
                                         </x-filament::badge>
-                                    @elseif($status === 'under_review')
-                                        <span class="text-sm">
-                                            <span class="text-primary-600">${{ number_format($price, 2) }}</span>
-                                            <span class="text-gray-400 text-xs">(under review)</span>
-                                        </span>
-                                    @elseif($price)
-                                        <span class="text-sm text-gray-950 dark:text-white">
-                                            ${{ number_format($price, 2) }}
-                                        </span>
+                                    @elseif($price !== null)
+                                        @if($showDifferencesOnly)
+                                            @if($isBest)
+                                                <x-filament::badge color="success" icon="heroicon-o-check-circle">
+                                                    Best
+                                                </x-filament::badge>
+                                            @elseif($diff !== null && $diffPercent !== null)
+                                                <span class="text-sm text-gray-600 dark:text-gray-300">
+                                                    +${{ number_format($diff, 2) }} ({{ number_format($diffPercent, 1) }}%)
+                                                </span>
+                                            @else
+                                                <span class="text-sm text-gray-400">-</span>
+                                            @endif
+                                            @if($status === 'under_review')
+                                                <span class="ml-2 text-xs text-gray-400">(under review)</span>
+                                            @endif
+                                        @else
+                                            <span class="text-sm {{ $isBest ? 'text-success-700 dark:text-success-300 font-semibold' : 'text-gray-950 dark:text-white' }}">
+                                                ${{ number_format($price, 2) }}
+                                            </span>
+                                            @if($isBest)
+                                                <x-filament::badge color="success" class="ml-2">
+                                                    Best
+                                                </x-filament::badge>
+                                            @elseif($diffPercent !== null)
+                                                <span class="ml-2 text-xs text-gray-400">(+{{ number_format($diffPercent, 1) }}%)</span>
+                                            @endif
+                                            @if($status === 'under_review')
+                                                <span class="ml-2 text-xs text-gray-400">(under review)</span>
+                                            @endif
+                                        @endif
                                     @else
                                         <span class="text-sm text-gray-400">-</span>
                                     @endif
                                 </div>
                             </td>
                         @endforeach
+                        <td class="fi-ta-cell px-3 py-4">
+                            <div class="fi-ta-col-wrp">
+                                @if($bestPrice !== null)
+                                    <p class="text-sm font-semibold text-gray-900 dark:text-white">
+                                        {{ $bestSupplierName }}
+                                    </p>
+                                    <p class="text-xs text-success-600">
+                                        ${{ number_format($bestPrice, 2) }}
+                                        @if($savingsPercent !== null)
+                                            · {{ number_format($savingsPercent, 1) }}% lower
+                                        @endif
+                                    </p>
+                                @else
+                                    <span class="text-sm text-gray-400">-</span>
+                                @endif
+                            </div>
+                        </td>
                         <td class="fi-ta-cell px-3 py-4 sm:last-of-type:pe-6">
                             <div class="fi-ta-col-wrp flex justify-end">
                                 <button
@@ -99,6 +191,21 @@
                     @endforeach
                 </tbody>
             </table>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
+            <span class="inline-flex items-center gap-2">
+                <span class="h-2 w-2 rounded-full bg-success-500"></span>
+                Best price
+            </span>
+            <span class="inline-flex items-center gap-2">
+                <span class="h-2 w-2 rounded-full bg-warning-500"></span>
+                Pending
+            </span>
+            <span class="inline-flex items-center gap-2">
+                <span class="h-2 w-2 rounded-full bg-primary-500"></span>
+                Under review
+            </span>
         </div>
 
         <div class="fi-ta-footer border-t border-gray-200 dark:border-white/10">

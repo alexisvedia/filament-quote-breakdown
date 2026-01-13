@@ -32,9 +32,11 @@ class QuoteProductionOrdersTable extends Component implements HasForms, HasTable
             ->columns([
                 TextColumn::make('version')
                     ->label('Version')
-                    ->color('warning')
+                    ->badge()
+                    ->color(fn (ProductionOrder $record): string => $record->state === 'current' ? 'success' : 'gray')
                     ->weight('semibold')
                     ->formatStateUsing(fn ($state) => 'v' . $state)
+                    ->description(fn (ProductionOrder $record) => $record->state === 'current' ? 'Current' : 'Previous')
                     ->sortable(),
                 TextColumn::make('state')
                     ->label('State')
@@ -54,6 +56,12 @@ class QuoteProductionOrdersTable extends Component implements HasForms, HasTable
                         $quoteNumber = $this->quote->quote_number ?? $this->quote->id;
                         return "PO-{$quoteNumber}-v{$record->version}.pdf";
                     }),
+                TextColumn::make('preview')
+                    ->label('Preview')
+                    ->badge()
+                    ->color('gray')
+                    ->formatStateUsing(fn () => 'Open')
+                    ->url('#'),
                 TextColumn::make('loading_date')
                     ->label('Loading date')
                     ->icon('heroicon-o-calendar')
@@ -64,6 +72,13 @@ class QuoteProductionOrdersTable extends Component implements HasForms, HasTable
                     ->icon('heroicon-o-user')
                     ->default('Admin'),
             ])
+            ->actions([
+                Tables\Actions\Action::make('viewDiff')
+                    ->label('View diff')
+                    ->icon('heroicon-o-arrows-right-left')
+                    ->color('gray')
+                    ->url('#'),
+            ])
             ->headerActions([
                 Tables\Actions\Action::make('importOrder')
                     ->label('+ Import Order')
@@ -71,6 +86,9 @@ class QuoteProductionOrdersTable extends Component implements HasForms, HasTable
                     ->icon('heroicon-o-arrow-up-tray')
                     ->url('#'),
             ])
+            ->emptyStateHeading('No production orders yet')
+            ->emptyStateDescription('Import a production order to start tracking.')
+            ->emptyStateIcon('heroicon-o-clipboard-document-list')
             ->paginated([10, 25, 50]);
     }
 

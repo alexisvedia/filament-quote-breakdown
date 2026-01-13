@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Widgets\LatestQuotationsWidget;
+use App\Filament\Widgets\RequiresAttentionWidget;
 use App\Filament\Widgets\StatsOverview;
 use Filament\Pages\Dashboard as BaseDashboard;
 
@@ -17,6 +18,7 @@ class Dashboard extends BaseDashboard
     {
         return [
             StatsOverview::class,
+            RequiresAttentionWidget::class,
             LatestQuotationsWidget::class,
         ];
     }

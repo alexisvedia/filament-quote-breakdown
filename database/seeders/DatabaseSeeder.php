@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             SupplierSeeder::class,
             TechpackSeeder::class,
             QuoteSeeder::class,
+            QuoteMockDataSeeder::class,
         ]);
     }
 }

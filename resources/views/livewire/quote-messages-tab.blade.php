@@ -56,6 +56,7 @@
             'sender' => 'Robert Chen',
             'time' => 'Jan 08, 09:30',
             'is_read' => true,
+            'attachments' => [],
         ],
         [
             'id' => 2,
@@ -64,6 +65,9 @@
             'sender' => 'Admin',
             'time' => 'Jan 08, 10:15',
             'is_read' => true,
+            'attachments' => [
+                ['name' => 'Techpack_TP-002.pdf', 'size' => '1.3 MB', 'type' => 'pdf'],
+            ],
         ],
         [
             'id' => 3,
@@ -72,6 +76,7 @@
             'sender' => 'Robert Chen',
             'time' => 'Jan 08, 14:22',
             'is_read' => true,
+            'attachments' => [],
         ],
         [
             'id' => 4,
@@ -80,6 +85,7 @@
             'sender' => 'Admin',
             'time' => 'Jan 08, 15:45',
             'is_read' => true,
+            'attachments' => [],
         ],
         [
             'id' => 5,
@@ -88,6 +94,10 @@
             'sender' => 'Robert Chen',
             'time' => 'Jan 09, 11:30',
             'is_read' => true,
+            'attachments' => [
+                ['name' => 'Costsheet_v3.xlsx', 'size' => '420 KB', 'type' => 'sheet'],
+                ['name' => 'Fabric_Swatch.jpg', 'size' => '1.2 MB', 'type' => 'image'],
+            ],
         ],
     ];
 
@@ -192,6 +202,24 @@
                                 : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl rounded-bl-md shadow-sm border border-gray-100 dark:border-gray-700' }}
                                 px-4 py-2.5">
                                 <p class="text-sm leading-relaxed whitespace-pre-wrap">{{ $message['body'] }}</p>
+                                @if(!empty($message['attachments']))
+                                    <div class="mt-3 space-y-2">
+                                        @foreach($message['attachments'] as $file)
+                                            @php
+                                                $fileIcon = match ($file['type']) {
+                                                    'image' => 'heroicon-o-photo',
+                                                    'sheet' => 'heroicon-o-table-cells',
+                                                    default => 'heroicon-o-document-text',
+                                                };
+                                            @endphp
+                                            <div class="flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-xs text-white/90 {{ $message['is_from_wts'] ? '' : 'border-gray-200 bg-gray-50 text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300' }}">
+                                                <x-dynamic-component :component="$fileIcon" class="h-4 w-4" />
+                                                <span class="flex-1 truncate">{{ $file['name'] }}</span>
+                                                <span class="text-[11px] text-gray-400 dark:text-gray-500">{{ $file['size'] }}</span>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @endif
                             </div>
 
                             {{-- Message Meta --}}

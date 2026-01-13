@@ -36,7 +36,7 @@ class MessagesWidget extends BaseWidget
             ])
             ->actions([
                 Tables\Actions\Action::make('see')
-                    ->label('See')
+                    ->label('View Details')
                     ->icon('heroicon-m-eye')
                     ->color('warning')
                     ->url(fn (QuoteMessage $record) => $record->quote ? QuoteResource::getUrl('view', ['record' => $record->quote]) : null)

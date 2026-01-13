@@ -7,6 +7,7 @@ use App\Models\Techpack;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
@@ -29,6 +30,9 @@ class QuoteStylesTable extends Component implements HasForms, HasTable
                 Techpack::query()->where('id', $this->quote->techpack_id)
             )
             ->columns([
+                ViewColumn::make('preview')
+                    ->label('Preview')
+                    ->view('filament.tables.columns.techpack-preview'),
                 TextColumn::make('style_code')
                     ->label('Code')
                     ->badge()

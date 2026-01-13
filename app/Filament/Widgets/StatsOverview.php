@@ -10,7 +10,11 @@ class StatsOverview extends BaseWidget
 {
     protected function getStats(): array
     {
-        $activeQuotes = Quote::where('status', 'active')->count();
+        $activeQuotes = Quote::whereIn('status', ['pending', 'in_production', 'approved'])->count();
+        $overdueQuotes = Quote::whereNotNull('delivery_date')
+            ->whereDate('delivery_date', '<', now())
+            ->where('status', '!=', 'completed')
+            ->count();
         $totalValue = Quote::sum('fob_price') ?? 0;
         $completedThisMonth = Quote::where('status', 'completed')
             ->whereMonth('created_at', now()->month)
@@ -18,13 +22,13 @@ class StatsOverview extends BaseWidget
 
         return [
             Stat::make('Active Quotes', $activeQuotes)
-                ->description('0 overdue')
+                ->description('Pending and in production')
                 ->descriptionIcon('heroicon-m-arrow-trending-down')
                 ->color('success'),
-            Stat::make('Performance SLA', '0%')
-                ->description('Compliance this month')
+            Stat::make('Overdue Deadlines', $overdueQuotes)
+                ->description('Quotes past deadline')
                 ->descriptionIcon('heroicon-m-exclamation-triangle')
-                ->color('warning'),
+                ->color($overdueQuotes > 0 ? 'danger' : 'success'),
             Stat::make('Total Asset Value', '$' . number_format($totalValue, 0))
                 ->description('In open quotations')
                 ->descriptionIcon('heroicon-m-chat-bubble-left-right')

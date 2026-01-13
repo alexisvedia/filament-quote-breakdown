@@ -14,6 +14,7 @@ class QuoteCostsheetTable extends Component
     public Quote $quote;
     public bool $showDetailModal = false;
     public bool $showHistoryModal = false;
+    public bool $showDifferencesOnly = false;
     public ?string $selectedTechpackCode = null;
     public array $detailData = [];
     public ?int $selectedVersionId = null;
@@ -147,6 +148,11 @@ class QuoteCostsheetTable extends Component
     public function closeDetailModal(): void
     {
         $this->showDetailModal = false;
+    }
+
+    public function toggleDifferencesOnly(): void
+    {
+        $this->showDifferencesOnly = !$this->showDifferencesOnly;
     }
 
     public function getHistoryData(): array

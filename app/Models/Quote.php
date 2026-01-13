@@ -11,6 +11,12 @@ class Quote extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'date' => 'date',
+        'delivery_date' => 'date',
+        'deadline' => 'date',
+    ];
+
     public function items()
     {
         return $this->hasMany(QuoteItem::class);

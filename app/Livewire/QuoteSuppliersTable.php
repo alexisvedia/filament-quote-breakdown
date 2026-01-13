@@ -14,12 +14,14 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Actions\BulkAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 use Livewire\Component;
 
 class QuoteSuppliersTable extends Component implements HasForms, HasTable
@@ -82,7 +84,41 @@ class QuoteSuppliersTable extends Component implements HasForms, HasTable
                     ->label('Deadline')
                     ->date('M d, Y')
                     ->placeholder('No deadline')
+                    ->description(function ($state): string {
+                        if (!$state) {
+                            return 'No deadline';
+                        }
+
+                        $date = $state instanceof Carbon ? $state : Carbon::parse($state);
+                        $diff = Carbon::today()->diffInDays($date->copy()->startOfDay(), false);
+
+                        if ($diff < 0) {
+                            return abs($diff) . 'd overdue';
+                        }
+
+                        if ($diff === 0) {
+                            return 'Due today';
+                        }
+
+                        return $diff . 'd left';
+                    })
                     ->color(fn ($state) => $state && $state < now() ? 'danger' : null),
+
+                TextColumn::make('scorecard')
+                    ->label('Scorecard')
+                    ->html()
+                    ->formatStateUsing(function (Supplier $record): string {
+                        $onTime = 80 + (($record->id * 7) % 20);
+                        $quality = ['A', 'A-', 'B+'][$record->id % 3];
+                        $response = 1 + (($record->id * 3) % 4) / 2;
+
+                        return sprintf(
+                            '<div class="text-xs text-gray-500">On-time %s%% · Quality %s · Resp %s d</div>',
+                            $onTime,
+                            $quality,
+                            number_format($response, 1)
+                        );
+                    }),
             ])
             ->actions([
                 Action::make('accept')
@@ -265,6 +301,44 @@ class QuoteSuppliersTable extends Component implements HasForms, HasTable
                                 ->send();
                         }
                     }),
+                Action::make('send_reminders')
+                    ->label('Send All Reminders')
+                    ->icon('heroicon-o-paper-airplane')
+                    ->color('gray')
+                    ->action(function (): void {
+                        Notification::make()
+                            ->title('Reminders queued')
+                            ->body('Suppliers will receive reminder emails shortly.')
+                            ->success()
+                            ->send();
+                    }),
+            ])
+            ->bulkActions([
+                BulkAction::make('bulk_reminders')
+                    ->label('Send reminders')
+                    ->icon('heroicon-o-paper-airplane')
+                    ->action(function ($records): void {
+                        $count = $records->count();
+                        Notification::make()
+                            ->title('Reminders sent')
+                            ->body("{$count} supplier(s) selected.")
+                            ->success()
+                            ->send();
+                    }),
+                BulkAction::make('bulk_remove')
+                    ->label('Remove from quote')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->action(function ($records): void {
+                        foreach ($records as $record) {
+                            $this->quote->suppliers()->detach($record->id);
+                        }
+                        Notification::make()
+                            ->title('Suppliers removed')
+                            ->success()
+                            ->send();
+                    }),
             ])
             ->emptyStateHeading('No suppliers invited')
             ->emptyStateDescription('Click "Invite Supplier" to add suppliers to this quotation.')
@@ -276,5 +350,27 @@ class QuoteSuppliersTable extends Component implements HasForms, HasTable
     public function render(): View
     {
         return view('livewire.quote-suppliers-table');
+    }
+
+    public function getSummary(): array
+    {
+        $total = $this->quote->suppliers()->count();
+        $responded = $this->quote->suppliers()
+            ->whereNotNull('quote_supplier.responded_at')
+            ->count();
+        $pending = $this->quote->suppliers()
+            ->where('quote_supplier.status', 'pending')
+            ->count();
+        $overdue = $this->quote->suppliers()
+            ->whereNotNull('quote_supplier.deadline')
+            ->whereDate('quote_supplier.deadline', '<', now())
+            ->count();
+
+        return [
+            'total' => $total,
+            'responded' => $responded,
+            'pending' => $pending,
+            'overdue' => $overdue,
+        ];
     }
 }

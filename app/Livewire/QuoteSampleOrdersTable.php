@@ -11,6 +11,7 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Carbon;
 use Livewire\Component;
 
 class QuoteSampleOrdersTable extends Component implements HasForms, HasTable
@@ -56,8 +57,37 @@ class QuoteSampleOrdersTable extends Component implements HasForms, HasTable
                     ->label('ETA')
                     ->icon('heroicon-o-clock')
                     ->iconColor('warning')
-                    ->color('warning')
+                    ->color(function ($state): string {
+                        if (!$state) {
+                            return 'gray';
+                        }
+
+                        $date = $state instanceof Carbon ? $state : Carbon::parse($state);
+                        if ($date->isPast()) {
+                            return 'danger';
+                        }
+
+                        return $date->diffInDays(now()) <= 3 ? 'warning' : 'success';
+                    })
                     ->date('M d, Y')
+                    ->description(function ($state): string {
+                        if (!$state) {
+                            return 'No ETA';
+                        }
+
+                        $date = $state instanceof Carbon ? $state : Carbon::parse($state);
+                        $diff = Carbon::today()->diffInDays($date->copy()->startOfDay(), false);
+
+                        if ($diff < 0) {
+                            return abs($diff) . 'd overdue';
+                        }
+
+                        if ($diff === 0) {
+                            return 'Due today';
+                        }
+
+                        return $diff . 'd left';
+                    })
                     ->sortable(),
                 TextColumn::make('supplier.company')
                     ->label('Supplier')
@@ -93,6 +123,9 @@ class QuoteSampleOrdersTable extends Component implements HasForms, HasTable
                     ->icon('heroicon-o-plus')
                     ->url('#'),
             ])
+            ->emptyStateHeading('No sample orders yet')
+            ->emptyStateDescription('Request a sample order to start tracking samples.')
+            ->emptyStateIcon('heroicon-o-clipboard-document')
             ->paginated([10, 25, 50]);
     }
 
